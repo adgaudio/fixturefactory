@@ -1,18 +1,10 @@
+import random
+
 class BaseFactory(object):
-    """Base Class for creating django objects
-
-    Child classes must adhere to the following template:
-
-    class Child(FactoryMixin):
-        model = django.contrib.auth.models.User
-        def getparams(self): return {}
-
-    *model is the class we are mass producing
-    *getparams: see FactoryMixin.getparams.__doc__
-    """
+    """Base Class for creating django objects """
 
     def getparams(cls):
-        """Template method: must be defined by child class.
+        """Template method: must be overridden by child class.
         Return dict of params that get sent to self.create()
 
         Example logic:
@@ -55,6 +47,7 @@ class BaseFactory(object):
         return inst
 
 class FactoryMixin(object):
+    """Useful/Necessary methods for Fixture Factories"""
     def _getmodel(self, model=None):
         if model == None:
             return self.model
