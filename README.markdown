@@ -1,3 +1,5 @@
+fixturefactory is a super simple, easy to use and customizable library for creating Django fixtures.  The BaseFactory is designed to make creating factories for other purposes or frameworks very simple.  Please fork, give feedback, or add an issue to the tracker.
+
 Use Cases:
 ===
 
@@ -10,7 +12,7 @@ Dynamically passing params to your factories
 
     >>> child1 = ChildFactory().last_obj_created
     
-    >>> BrotherFactory(pk1=child1.pk, pk2=1) # this could define a many to many relationship
+    >>> BrotherFactory(pk1=child1.pk, pk2=1) # These pks are usable as class vars by BrotherFactory.getparams()
 
 
 Defining your Factories: All factories you create need to have these basic characteristics:
@@ -71,24 +73,30 @@ If you wanted to link 2 user profiles dynamically at runtime, your factory might
             user2 = self.pk2
             return locals()
 
-    >>> RelatedUserFactory(pk1=3, pk2=5)
+    >>> RelatedUserFactory(pk1=3, pk2=5) #keyword param required in this case.
 
-For simplicity, the above example requires that you pass in a keyword argument at time of instantiation.  However, if you don't like specifying keyword arguments, you can override the __init__  method.  If you do this, make sure you call super() **at the end** of your init method like so:
+You can avoid typing in keyword arguments if you really want to by overriding the init method.  If you do this, which probably means you're overthinking things a bit, make sure you call super() **at the end** of your init method like so:
+
         def __init__(self, pk1, pk2):
             self.pk1 = pk1
             self.pk2 = pk2
             super(self.__class__, self).__init__()
 
-In progress notes...
-Child classes must inherit from BaseFactory, must have a getparams method and must define a model variable.  
-It's helpful to adhere to the following template:
+Also, you can have your factory fall back to randomly choosing values if no keyword argument is supplied by setting class variables to None before __init__ gets called.
 
-    *model is the class we are mass instantiating
-    *getparams: see DjangoMixin.getparams.__doc__
+    class RelatedUserFactory(BaseFactory, DjangoMixin):
+        model = mysapp.models.RelatedUser
 
-    *if you want by default to not save to db, override init
-     with following: super(...).__init__(save_to_db=False)
-    *if you override __init__,
-        you need to call super(...).__init__ in the last line
+        pk1 = None # sets default value
+        pk2 = None
 
+        def getparams(self):
+            user1 = self.pk1 or self.getRandInst().pk # if no pk1 is passed in at time of instantiation, get a random pk
+            user2 = self.pk2 or self.getRandInst().pk
 
+Development:
+===
+
+To use BaseFactory for a purpose other than Django fixtures, you'd have to (probably) override the BaseFactory.create() method.  You will also probably want to create a mixin to make your factories very simple (see DjangoMixin for an example).
+
+I hope all this encourages you to use fixturefactory!
