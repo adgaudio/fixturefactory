@@ -4,6 +4,7 @@ About:
 fixturefactory is a super simple, easy to use and customizable library for creating Django fixtures.  
 
 Within fixturefactory.py, you will find a BaseFactory and DjangoMixin.
+
 * The BaseFactory class was written to make developing with factories for other purposes or frameworks very simple.
 * The DjangoMixin class provides some methods to make fixture creation easy.
 
