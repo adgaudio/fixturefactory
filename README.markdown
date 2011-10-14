@@ -1,39 +1,28 @@
-
-Child classes must inherit from BaseFactory, must have a getparams method and must define a model variable.  
-It's helpful to adhere to the following template:
-
-    *model is the class we are mass instantiating
-    *getparams: see FactoryMixin.getparams.__doc__
-
-    *if you want by default to not save to db, override init
-     with following: super(...).__init__(save_to_db=False)
-    *if you override __init__,
-        you need to call super(...).__init__ in the last line
-
-
 Use Cases:
+===
 
-# creating objects
->>> ChildFactory()
->>> ChildFactory(save_to_db=False)
+Creating instances of a model
 
->>> child2 = ChildFactory().last_obj_created
->>> child3 = ChildFactory().last_obj_created
+    >>> ChildFactory()
+    >>> ChildFactory(save_to_db=False)
 
-# dynamically passing params to create certain kinds of connections
->>> BrotherFactory(child2.pk, child3.pk)
+Dynamically passing params to your factories
+
+    >>> child1 = ChildFactory().last_obj_created
+    
+    >>> BrotherFactory(pk1=child1.pk, pk2=1) # this could define a many to many relationship
 
 
 Defining your Factories: All factories you create need to have these basic characteristics:
 ===
 
-* Must inherit from BaseFactory (should also inherit from FactoryMixin to simplify working with Django)
-* Must have a class variable, model, which returns the class object we want to mass instantiate
-* Must have a method, getparams, which returns a dict containing the params necessary to instantiate the model.
+* Must inherit from BaseFactory (should also inherit from DjangoMixin to simplify working with Django)
+* Must have a class variable, 'model', which works like this: inst = model(some='keyword args') ; inst.save() # to db
+* Must have a method, 'getparams', which returns a dict containing the params necessary to instantiate the model.
 
 The basic template looks like this:
 
-    class ChildFactory(BaseFactory, FactoryMixin):
+    class ChildFactory(BaseFactory, DjangoMixin):
         model = myapp.models.SomeModel
 
         def getparams(self): return {}
@@ -41,49 +30,65 @@ The basic template looks like this:
 
 Example Implementations:
 
-The following factory generates generic Django users.  A more advanced implementation may make use of randomly generated text, etc.  Note that getparams returned locals(), which is a dict of the local environment.  If you have temporary variables, this approach can cause django to raise an exception, but it also brings up the point that getparams() probably should be doing anything complicated.
+The following factory generates generic Django users.  A more advanced implementation may make use of randomly generated text, etc.  Note that getparams returns locals(), which is a dict of the local environment.  If you have defined temporary variables in the getparams() method, this approach can cause django to raise an exception, but it also brings up the point that getparams() should not do anything complicated.  The purpose of getparams() is to define parameters that will eventually get sent as a call to your factory's model
 
-    class UserFactory(BaseFactory, FactoryMixin):
+    class UserFactory(BaseFactory, DjangoMixin):
         model = django.contrib.auth.models.User
 
         def getparams(self):
-            pk = self.getUnusedPk() # Utilize the methods in FactoryMixin
+            pk = self.getUnusedPk() # Utilize the methods in DjangoMixin
             username = 'markov_%s' % pk
             password = username
             return locals()
 
-This next example shows how to implement Foreign Keys, where the UserProfile has a Foreign Key on the above User model.  Note that the 'user' variable in getparams() is an instance of the UserFactory's own class variable, model 
+This next example shows how to implement Foreign Keys, where the UserProfile has a Foreign Key on the above example's User model.  Note that the 'user' variable in getparams() is an instance of the UserFactory's model 
 
-    class UserProfileFactory(BaseFactory, FactoryMixin):
+    class UserProfileFactory(BaseFactory, DjangoMixin):
         model = myapp.models.UserProfile
 
         def getparams(self):
             """An example of a foreign key"""
             user = UserFactory().last_obj_created
             pk = user.pk #this User and UserProfile share the same primary key
-
-
-There are a couple options for Many to Many Relationships.  In the simplest form, they can follow the same form as above if you don't care about which 2 UserProfiles the relationships are between.  
-
-    class RelatedUserFactory(BaseFactory, FactoryMixin):
-        model = myapp.models.RelatedUser
-        def getparams(self):
-            user1 = self.getRandInst(myapp.models.UserProfile).pk
-            user2 = self.getRandInst(myapp.models.UserProfile).pk
             return locals()
 
-A second, more complex option (helpful for m2m relationships): Dynamically passing in parameters to your factory class at time of execution.  Note that in this example, we call the BaseFactory __init__ method AFTER defining self.pk1 and self.pk2.  This is an important gotcha and exists because the BaseFactory's __init__ method currently calls child factory's getparams() method.
+Implementing Many to Many Relationships are also very easy. In this example, lets assume that RelatedUser is a many to many table linking Users to each other.  Use this simple form if you don't care about which 2 UserProfiles the relationships are between:
 
-    class RelatedUserFactory(BaseFactory, FactoryMixin):
+    class RelatedUserFactory(BaseFactory, DjangoMixin):
+        model = myapp.models.RelatedUser
+        def getparams(self):
+            user1_id = self.getRandInst(myapp.models.UserProfile).pk
+            user2_id = self.getRandInst(myapp.models.UserProfile).pk
+            return locals()
+
+If you wanted to link 2 user profiles dynamically at runtime, your factory might look a little different.  Note that this design gives you enormous potential to easily customize how you create objects:
+
+    class RelatedUserFactory(BaseFactory, DjangoMixin):
         model = myapp.models.RelatedUser
 
-        def __init__(pk1, pk2, *args, **kwargs):
-            self.pk1 = pk1
-            self.pk2 = pk2
-            super(RelatedUserFactory, self).__init__(*args, **kwargs)
-
         def getparams(self):
-            user1 = self.pk1
+            user1 = self.pk1 #NOTE the use of self.pk1 and self.pk2
             user2 = self.pk2
             return locals()
+
+    >>> RelatedUserFactory(pk1=3, pk2=5)
+
+For simplicity, the above example requires that you pass in a keyword argument at time of instantiation.  However, if you don't like specifying keyword arguments, you can override the __init__  method.  If you do this, make sure you call super() **at the end** of your init method like so:
+        def __init__(self, pk1, pk2):
+            self.pk1 = pk1
+            self.pk2 = pk2
+            super(self.__class__, self).__init__()
+
+In progress notes...
+Child classes must inherit from BaseFactory, must have a getparams method and must define a model variable.  
+It's helpful to adhere to the following template:
+
+    *model is the class we are mass instantiating
+    *getparams: see DjangoMixin.getparams.__doc__
+
+    *if you want by default to not save to db, override init
+     with following: super(...).__init__(save_to_db=False)
+    *if you override __init__,
+        you need to call super(...).__init__ in the last line
+
 
