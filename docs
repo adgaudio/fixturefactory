@@ -63,5 +63,27 @@ This next example shows how to implement Foreign Keys, where the UserProfile has
             pk = user.pk #this User and UserProfile share the same primary key
 
 
-Many to Many Relationships are a little more conceptually complicated, but still simple to implement.
+There are a couple options for Many to Many Relationships.  In the simplest form, they can follow the same form as above if you don't care about which 2 UserProfiles the relationships are between.  
+
+    class RelatedUserFactory(BaseFactory, FactoryMixin):
+        model = myapp.models.RelatedUser
+        def getparams(self):
+            user1 = self.getRandInst(myapp.models.UserProfile).pk
+            user2 = self.getRandInst(myapp.models.UserProfile).pk
+            return locals()
+
+A second, more complex option (helpful for m2m relationships): Dynamically passing in parameters to your factory class at time of execution.  Note that in this example, we call the BaseFactory __init__ method AFTER defining self.pk1 and self.pk2.  This is an important gotcha and exists because the BaseFactory's __init__ method currently calls child factory's getparams() method.
+
+    class RelatedUserFactory(BaseFactory, FactoryMixin):
+        model = myapp.models.RelatedUser
+
+        def __init__(pk1, pk2, *args, **kwargs):
+            self.pk1 = pk1
+            self.pk2 = pk2
+            super(RelatedUserFactory, self).__init__(*args, **kwargs)
+
+        def getparams(self):
+            user1 = self.pk1
+            user2 = self.pk2
+            return locals()
 
