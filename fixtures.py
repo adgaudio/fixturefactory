@@ -2,9 +2,21 @@ from fixturefactory import BaseFactory, FactoryMixin
 
 import random
 
-from hunchworks.models import UserProfile, TranslationLanguage, Invitation
+from hunchworks.models import UserProfile, Connection, TranslationLanguage, Invitation
 from django.contrib.auth.models import User
 from hunchworks import hunchworks_enums as enums
+
+
+class ConnectionFactory(BaseFactory, FactoryMixin):
+    model = Connection
+
+    def getparams(self):
+        # Must be passed in at time of instantiation
+        user_profile_id = self.uid1
+        other_user_profile_id = self.uid2
+
+        status = random.choice(enums.ConnectionStatus.GetChoices())[0]
+        return locals()
 
 class UserFactory(BaseFactory, FactoryMixin):
     model = User
@@ -19,16 +31,8 @@ class UserFactory(BaseFactory, FactoryMixin):
 
         return locals()
 
-class UserProfileFactory(FactoryMixin):
+class UserProfileFactory(BaseFactory, FactoryMixin):
     model = UserProfile
-    def phonenumber(self):
-        return  ''.join([str(random.randint(0,9))
-                for x in range(random.choice([7,10,11,13,20]))])
-    def website(self, subdomain):
-        return  "%s%s%s" %
-                    (random.choice(['www.','', 'http://', 'http://www.']),
-                     subdomain,
-                     random.choice(['.com', '.org', '.me', '.uk', '.it']))
 
     def getparams(self):
         user = UserFactory().last_obj_created
@@ -47,9 +51,11 @@ class UserProfileFactory(FactoryMixin):
         translation_language = self.getRandInst(TranslationLanguage)
         #invitation = self.getRandInst(Invitation)
 
-        #NO SUPPORT FOR MANY TO MANY YET. need to create multiple Connection,
+        #SUPPORT FOR MANY TO MANY: you need to create model objects for each one-to-one
+        # in the many-to-many relationship.
         # ALL BELOW ARE MANY TO MANY
-        #connections = ??? # don't know how to do connections
+        #connections => Connection
+        ConnectionFactory(pk, self.getRandInst(model=UserProfile).pk)
         #roles = Role
         #location_interests = Location
         #skills = Skill
@@ -59,3 +65,13 @@ class UserProfileFactory(FactoryMixin):
         #courses = Course
 
         return locals()
+
+    def phonenumber(self):
+        return  ''.join([str(random.randint(0,9))
+                for x in range(random.choice([7,10,11,13,20]))])
+    def website(self, subdomain):
+        return  "%s%s%s" % (
+                    random.choice(['www.','', 'http://', 'http://www.']),
+                    subdomain,
+                    random.choice(['.com', '.org', '.me', '.uk', '.it']))
+
