@@ -22,11 +22,13 @@ Dynamically passing params to your factories
 
     >>> child1 = ChildFactory().last_obj_created
     
-    >>> BrotherFactory(pk1=child1.pk, pk2=1) # These pks are usable as class vars by BrotherFactory.getparams()
+    >>> BrotherFactory(pk1=child1.pk, pk2=1) # These pks are usable as class vars
 
 
-Defining your Factories: All factories you create need to have these basic characteristics:
+Defining your Factories:
 ===
+
+All factories you create need to have these basic characteristics:
 
 * Must inherit from BaseFactory (should also inherit from DjangoMixin to simplify working with Django)
 * Must have a class variable, 'model', which works like this: inst = model(some='keyword args') ; inst.save() # to db
@@ -41,6 +43,7 @@ The basic template looks like this:
 
 
 Example Implementations:
+---
 
 The following factory generates generic Django users.  A more advanced implementation may make use of randomly generated text, etc.  Note that getparams returns locals(), which is a dict of the local environment.  If you have defined temporary variables in the getparams() method, this approach can cause django to raise an exception, but it also brings up the point that getparams() should not do anything complicated.  The purpose of getparams() is to define parameters that will eventually get sent as a call to your factory's model
 
@@ -73,7 +76,7 @@ Implementing Many to Many Relationships are also very easy. In this example, let
             user2_id = self.getRandInst(myapp.models.UserProfile).pk
             return locals()
 
-If you wanted to link 2 user profiles dynamically at runtime, your factory might look a little different.  Note that this design gives you enormous potential to easily customize how you create objects:
+If you wanted to link 2 user profiles dynamically at runtime, your factory might look a little different. 
 
     class RelatedUserFactory(BaseFactory, DjangoMixin):
         model = myapp.models.RelatedUser
@@ -101,12 +104,12 @@ Also, you can have your factory fall back to randomly choosing values if no keyw
         pk2 = None
 
         def getparams(self):
-            user1 = self.pk1 or self.getRandInst().pk # if no pk1 is passed in at time of instantiation, get a random pk
-            user2 = self.pk2 or self.getRandInst().pk
+            user1 = self.pk1 or self.getRandInst(myapp.models.UserProfile).pk
+            user2 = self.pk2 or self.getRandInst(myapp.models.UserProfile).pk
 
 Development:
 ===
 
-To use BaseFactory for a purpose other than Django fixtures, you'd have to (probably) override the BaseFactory.create() method.  You will also probably want to create a mixin to make your factories very simple (see DjangoMixin for an example).
+To use BaseFactory for a purpose other than Django fixtures, you'd have to (probably) override the BaseFactory.create() method.  You will also probably want to create a mixin to simplify development (see DjangoMixin for an example).
 
 I hope all this encourages you to use fixturefactory!
