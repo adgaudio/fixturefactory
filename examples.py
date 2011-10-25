@@ -2,19 +2,48 @@ from fixturefactory import BaseFactory, DjangoMixin
 
 import random
 
-from hunchworks.models import UserProfile, Connection, TranslationLanguage, Invitation
+from hunchworks.models import UserProfile, Connection, TranslationLanguage, Invitation, Hunch, PRIVACY_CHOICES, Location
 from django.contrib.auth.models import User
 from hunchworks import hunchworks_enums as enums
+
+class HunchFactory(BaseFactory, DjangoMixin):
+    model = Hunch
+
+    def getparams(self):
+        pk = self.getUnusedPk()
+        creator = self.getRandInst(UserProfile)
+        time_created = "2011-01-01"
+        time_modified = "2011-08-08"
+        status = random.choice(enums.HunchStatus.GetChoices())[0]
+        title = 'markov %s' % pk
+        privacy = random.choice(range(len(PRIVACY_CHOICES)))
+        translation_language = self.getRandInst(TranslationLanguage)
+        location = self.getRandInst(Location)
+        description = 'markov %s' % pk
+        return locals()
+
+class HunchUserFactory(BaseFactory, DjangoMixin): pass
+
+class LocationFactory(BaseFactory, DjangoMixin):
+    model = Location
+
+    def getparams(self):
+        pk = self.getUnusedPk()
+        latitude = self.number()
+        longitude = self.number()
+        name = 'markov %s' % pk
+        return locals()
+
+    def number(self):
+        return '%0.2f' % (random.randint(-360,360) + random.random())
 
 
 class ConnectionFactory(BaseFactory, DjangoMixin):
     model = Connection
-    pk1=None
-    pk2=None
 
     def getparams(self):
-        user_profile_id = self.pk1 or self.getRandInst(UserProfile).pk
-        other_user_profile_id = self.pk2 or self.getRandInst(UserProfile).pk
+        user_profile = self.getRandInst(UserProfile)
+        other_user_profile = self.getRandInst(UserProfile)
         status = random.choice(enums.ConnectionStatus.GetChoices())[0]
         return locals()
 
@@ -41,6 +70,7 @@ class UserProfileFactory(BaseFactory, DjangoMixin):
         email = '%s@testhunchworks.com' % (user.username)
         privacy = random.choice(enums.PrivacyLevel.GetChoices())[0]
 
+        ###blank = True for all below
         bio_text = "Soon to be markov text"
         phone = self.phonenumber()
         skype_name = "%s_onskype" % user.username
@@ -51,6 +81,14 @@ class UserProfileFactory(BaseFactory, DjangoMixin):
         invitation = self.getRandInst(Invitation)
 
         #ConnectionFactory(uid1=pk, uid2=self.getRandInst(model=UserProfile).pk)
+        #roles = Role
+        #location_interests = Location
+        #skills = Skill
+        #languages = Language
+
+        #qualifications = Education
+        #courses = Course
+
         return locals()
 
     def phonenumber(self):
