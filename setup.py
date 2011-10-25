@@ -8,7 +8,7 @@ setup(
     name = "fixturefactory",
     description = "Factory to generate Django model objects.  Easier than factoryboy and factorygirl",
     url = "git@github.com:adgaudio/fixturefactory.git",
-    long_description=read('README.markdown'),
+    long_description=read('README'),
     version = "0.1",
     author = "Alex Gaudio",
     author_email = "adgaudio@gmail.com",
@@ -17,13 +17,15 @@ setup(
     install_requires = ['django'],
 
     py_modules=['fixturefactory'],
-    #packages = find_packages(where='lib'),
-    #package_dir = {"": "lib"},
-    #scripts = ['say_hello.py'],
+    #package_data = {'': ['*.md'] },
+    #include_package_data=True,
     #package_data = {
         ## If any package contains *.txt or *.rst files, include them:
-        #'': ['*.txt', '*.rst'],
+        #'': ['*.markdown', '*.txt', '*.rst'],
         ## And include any *.msg files found in the 'hello' package, too:
         ##'hello': ['*.msg'],
     #},
+    #packages = find_packages(where='lib'),
+    #package_dir = {"": "."},
+    #scripts = ['say_hello.py'],
 )
