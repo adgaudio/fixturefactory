@@ -1,0 +1,29 @@
+from setuptools import setup, find_packages
+import os
+
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+setup(
+    name = "fixturefactory",
+    description = "Factory to generate Django model objects.  Easier than factoryboy and factorygirl",
+    url = "git@github.com:adgaudio/fixturefactory.git",
+    long_description=read('README.markdown'),
+    version = "0.1",
+    author = "Alex Gaudio",
+    author_email = "adgaudio@gmail.com",
+    keywords = "django factory fixture",
+
+    install_requires = ['django'],
+
+    py_modules=['fixturefactory'],
+    #packages = find_packages(where='lib'),
+    #package_dir = {"": "lib"},
+    #scripts = ['say_hello.py'],
+    #package_data = {
+        ## If any package contains *.txt or *.rst files, include them:
+        #'': ['*.txt', '*.rst'],
+        ## And include any *.msg files found in the 'hello' package, too:
+        ##'hello': ['*.msg'],
+    #},
+)
