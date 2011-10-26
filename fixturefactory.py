@@ -3,9 +3,6 @@ import random
 class BaseFactory(object):
     """Base Class for creating django objects """
 
-    # parameters to instantiate an object.
-    # may be overridden by childcls's getparams() method
-    default_params = dict(save_to_db=True, )
     last_obj_created = 'None'
 
     def getparams(cls):
@@ -28,7 +25,8 @@ class BaseFactory(object):
         """Create new instance of a model by calling getparams in child class.
         Don't call directly.  Don't instantiate BaseFactory directly.
 
-        Any given params are passed to cls.getparams(*args, **kwargs)"""
+        Any given params get passed to ChildCls.getparams(*args, **kwargs)"""
+
 
         #add kwargs as class vars.  This means getparams() can use
         # any kwargs passed in at time of instantiation.  kwargs won't
@@ -36,8 +34,10 @@ class BaseFactory(object):
         # (or by overriding __init__ in the child)
         self.__dict__ = kwargs
 
-        # Get dict of params necessary to create object
-        dict_ = self.default_params
+        # Make dict of params necessary to create object
+        dict_ = dict(save_to_db=True, ) # DEFAULT values
+
+        # Override defaults with getparams()
         dict_.update(self.getparams())
 
         #override getparams args with those supplied at runtime
