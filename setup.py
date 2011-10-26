@@ -9,7 +9,7 @@ setup(
     description = "Factory to generate Django model objects.  Easier than factoryboy and factorygirl",
     url = "git@github.com:adgaudio/fixturefactory.git",
     long_description=read('README'),
-    version = "0.1",
+    version = "0.1b",
     author = "Alex Gaudio",
     author_email = "adgaudio@gmail.com",
     keywords = "django factory fixture",
