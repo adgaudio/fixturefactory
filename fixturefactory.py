@@ -21,18 +21,37 @@ class BaseFactory(object):
                 'You cannot directly instantiate BaseFactory '
                 'or call this method directly')
 
+    def lastly(cls):
+        """ Optional Template method: If used, must be overridden
+        by child class.  Contains code to execute after instantiating
+        a model object
+
+        Example logic: If my model instance has a many to many field,
+        I can add many to many relationships to the instance
+
+        inst = self.last_obj_created
+        for x in range(15):
+            inst.m2mForSomeModel.add(self.getRandInst( SomeModel ))
+
+        """
+
     def __init__(self, *args, **kwargs):
         """Create new instance of a model by calling getparams in child class.
         Don't call directly.  Don't instantiate BaseFactory directly.
 
-        Any given params get passed to ChildCls.getparams(*args, **kwargs)"""
+        Accepts these kwargs (which don't get passed to django model):
+            lastly - bool that determines whether or not to call cls.lastly()
 
+        Any other given params get passed to
+        ChildCls.getparams(*args, **kwargs)"""
 
-        #add kwargs as class vars.  This means getparams() can use
-        # any kwargs passed in at time of instantiation.  kwargs won't
-        # get explicitly passed to django unless set in getparams()
-        # (or by overriding __init__ in the child)
-        self.__dict__ = kwargs
+        try:
+            call_lastly = kwargs['lastly']
+            del kwargs['lastly']
+        except: call_lastly = True
+
+        # turn kwargs into class vars so getparams() can use them
+        self.__dict__.update(kwargs)
 
         # Make dict of params necessary to create object
         dict_ = dict(save_to_db=True, ) # DEFAULT values
@@ -43,12 +62,19 @@ class BaseFactory(object):
         #override getparams args with those supplied at runtime
         dict_.update(**kwargs)
 
-        # Check and prep dict_ as necessary
         try: del dict_['self'] # we don't want to pass this around
         except: pass
 
         # Create model object
         self.last_obj_created = self.create(**dict_)
+
+        # Execute lastly() unless otherwise specified
+        if call_lastly:
+            self.lastly()
+
+    def __call__(self):
+        """Return last_obj_created when a child class INSTANCE is called"""
+        return self.last_obj_created
 
     def __repr__(self):
         return "%s: last_obj_created <%s>" % (
@@ -101,7 +127,8 @@ class DjangoMixin(object):
         pks = self.getPks(model)
         if not pks:
             raise IndexError('No primary keys for model: %s' % model)
-        return model.objects.get(pk=random.choice(pks))
+        pk = random.choice(pks)
+        return model.objects.get(pk=pk)
 
     #def newInstance(self, model=None):
         #""""return self.model.objects.get(pk=sorted(pks)[-1])
