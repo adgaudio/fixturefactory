@@ -1,7 +1,7 @@
 About:
 ===
 
-fixturefactory is a super simple, easy to use and customizable library for creating Django fixtures.  
+fixturefactory is a great library for creating Django fixtures.  
 
 Within fixturefactory.py, you will find a BaseFactory and DjangoMixin.
 
@@ -18,34 +18,42 @@ Creating instances of a model
     >>> ChildFactory()
     >>> ChildFactory(save_to_db=False)
 
-Dynamically passing params to your factories
+Create and retrieve an instance
 
     >>> child1 = ChildFactory().last_obj_created
-    
-    >>> BrotherFactory(pk1=child1.pk, pk2=1) # These pks are usable as class vars
+    >>> child2 = ChildFactory()() # calling the instance returns the last_obj_created
+
+Dynamically passing params to your factories to override factory defaults
+    >>> BrotherFactory(pk1=child1.pk, pk2=1) # (params also available as class vars)
 
 
 Defining your Factories:
 ===
 
-All factories you create need to have these basic characteristics:
+All factories you create have these basic characteristics:
 
 * Must inherit from BaseFactory (should also inherit from DjangoMixin to simplify working with Django)
-* Must have a class variable, 'model', which works like this: inst = model(some='keyword args') ; inst.save() # to db
-* Must have a method, 'getparams', which returns a dict containing the params necessary to instantiate the model.
+* Must have a class variable, 'model', which accepts parameters and has a save() method
+* Must have a method, 'getparams', which returns a dict containing the params necessary to instantiate the model
+* Optionally, can have a method, 'lastly', which can be executed after model instantiation (useful for m2m)
 
 The basic template looks like this:
 
     class ChildFactory(BaseFactory, DjangoMixin):
         model = myapp.models.SomeModel
 
-        def getparams(self): return {}
+        def getparams(self):
+            return {}
+
+        #optional method
+        def lastly(self):
+            pass
 
 
 Example Implementations:
 ---
 
-The following factory generates generic Django users.  A more advanced implementation may make use of randomly generated text, etc.  Note that getparams returns locals(), which is a dict of the local environment.  If you have defined temporary variables in the getparams() method, this approach can cause django to raise an exception, but it also brings up the point that getparams() should not do anything complicated.  The purpose of getparams() is to define parameters that will eventually get sent as a call to your factory's model
+The following factory generates generic Django users.  A more advanced implementation may make use of randomly generated text, etc.  Note that in this example, getparams returns locals(), which is a dict of the local environment.  If you have defined temporary variables in the getparams() method, this approach can cause django to raise an exception, but it also brings up the point that getparams() should not do anything complicated or temporary.  The purpose of getparams() is to define parameters that will eventually be used to instantiate the factory's model
 
     class UserFactory(BaseFactory, DjangoMixin):
         model = django.contrib.auth.models.User
@@ -55,6 +63,8 @@ The following factory generates generic Django users.  A more advanced implement
             username = 'markov_%s' % pk
             password = username
             return locals()
+
+        #def lastly(self): pass # optional
 
 This next example shows how to implement Foreign Keys, where the UserProfile has a Foreign Key on the above example's User model.  Note that the 'user' variable in getparams() is an instance of the UserFactory's model 
 
@@ -67,49 +77,52 @@ This next example shows how to implement Foreign Keys, where the UserProfile has
             pk = user.pk #this User and UserProfile share the same primary key
             return locals()
 
-Implementing Many to Many Relationships are also very easy. In this example, lets assume that RelatedUser is a many to many table linking Users to each other.  Use this simple form if you don't care about which 2 UserProfiles the relationships are between:
+Implementing Many to Many Relationships are also very easy, and there are a couple different ways to do this.  This example utilizes fixturefactory's 'lastly' method to execute some code after the model has been instantiated.  In this case, a many to many connection is made using the instantiated model.
+
+For this example, lets assume the UserProfile model has a many to many relationship with a model called 'Group'
+
+    class UserProfileFactory(BaseFactory, DjangoMixin):
+        model = myapp.models.UserProfile
+
+        def getparams(self):
+            return {} # lets assume you have already coded this part
+
+        def lastly(self):
+            """Creating a many to many relationship after model instantiation"""
+            inst = self.last_obj_created
+            inst.groups.add(Group.objects.get(pk=1))
+
+You can choose not to execute lastly at time of instantiation:
+
+    >>> UserProfileFactory(lastly=False)
+    UserProfileFactory: last_obj_created <Betsy>
+
+Here's another many to many example.  If you didn't want to define a method, you can add m2m relationship after instantiation
+
+    >>> userprofile_instance = UserProfileFactory(lastly=False)()
+
+    >>> group = Group.objects.get(pk=1)
+    >>> userprofile_instance.groups.add(group)
+
+If you wanted to require a parameter at runtime, your factory might look like this:
 
     class RelatedUserFactory(BaseFactory, DjangoMixin):
         model = myapp.models.RelatedUser
+
         def getparams(self):
-            user1_id = self.getRandInst(myapp.models.UserProfile).pk
-            user2_id = self.getRandInst(myapp.models.UserProfile).pk
+            pk1 = self.pk1 #NOTE the class var (self.pk1) and local var (pk1) must have the same name 
+            pk2 = self.pk2
             return locals()
 
-If you wanted to link 2 user profiles dynamically at runtime, your factory might look a little different. 
+    >>> RelatedUserFactory(pk1=3, pk2=5) #keywords 'pk1' and 'pk2' required in this case.
 
-    class RelatedUserFactory(BaseFactory, DjangoMixin):
-        model = myapp.models.RelatedUser
-
-        def getparams(self):
-            user1 = self.pk1 #NOTE the use of self.pk1 and self.pk2
-            user2 = self.pk2
-            return locals()
-
-    >>> RelatedUserFactory(pk1=3, pk2=5) #keyword param required in this case.
-
-You can avoid typing in keyword arguments if you really want to by overriding the init method.  If you do this, which probably means you're overthinking things a bit, make sure you call super() **at the end** of your init method like so:
-
-        def __init__(self, pk1, pk2):
-            self.pk1 = pk1
-            self.pk2 = pk2
-            super(self.__class__, self).__init__()
-
-Also, you can have your factory fall back to randomly choosing values if no keyword argument is supplied by setting class variables to None before __init__ gets called.
-
-    class RelatedUserFactory(BaseFactory, DjangoMixin):
-        model = mysapp.models.RelatedUser
-
-        pk1 = None # sets default value
-        pk2 = None
-
-        def getparams(self):
-            user1 = self.pk1 or self.getRandInst(myapp.models.UserProfile).pk
-            user2 = self.pk2 or self.getRandInst(myapp.models.UserProfile).pk
 
 Development:
 ===
 
 To use BaseFactory for a purpose other than Django fixtures, you'd have to (probably) override the BaseFactory.create() method.  You will also probably want to create a mixin to simplify development (see DjangoMixin for an example).
+
+Any parameters passed in to the Factory at time of instantiation are available as class variables.  This is useful for mixin development,when you may need to know what parameters are overriding defaults defined by getparams().
+
 
 I hope all this encourages you to use fixturefactory!
