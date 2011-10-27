@@ -50,7 +50,10 @@ class BaseFactory(object):
             del kwargs['lastly']
         except: call_lastly = True
 
-        # turn kwargs into class vars so getparams() can use them
+        # turn kwargs into class vars so getparams()
+        # NOTE: kwargs override getparams(), so this is only useful
+        # for things like DjangoMixin methods which need to know
+        # which params you will be using
         self.__dict__.update(kwargs)
 
         # Make dict of params necessary to create object
@@ -116,7 +119,11 @@ class DjangoMixin(object):
         return pks
 
     def getUnusedPk(self, model=None):
-        """Get minimum possible unused primary key"""
+        """Get minimum possible unused primary key. HOWEVER,
+        if model==self.model, try to return self.pk first"""
+        if self._getmodel(model) == self.model:
+            try: return self.pk
+            except: pass
         a = set(self.getPks(model)) or [1]
         b = set(range(min(a), max(a)+2))
         return min(b.difference(a))
