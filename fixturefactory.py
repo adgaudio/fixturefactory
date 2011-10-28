@@ -120,7 +120,7 @@ class DjangoMixin(object):
 
     def getUnusedPk(self, model=None):
         """Get minimum possible unused primary key. HOWEVER,
-        if model==self.model, try to return self.pk first"""
+        Try to return self.pk if _getmodel(model) returns self.model"""
         if self._getmodel(model) == self.model:
             try: return self.pk
             except: pass
@@ -129,8 +129,15 @@ class DjangoMixin(object):
         return min(b.difference(a))
 
     def getRandInst(self, model=None):
-        """Return randomly selected instance of possible models"""
+        """Return randomly selected instance of possible models.  HOWEVER,
+        Try to return class var with same name as model, if possible"""
         model = self._getmodel(model)
+
+        # Check if model's name is a class var with first letter lower case
+        name = model.__name__[0].lower() + model.__name__[1:]
+        if hasattr(self, name):
+            return getattr(self, name)
+
         pks = self.getPks(model)
         if not pks:
             raise IndexError('No primary keys for model: %s' % model)
