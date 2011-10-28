@@ -21,9 +21,10 @@ Creating instances of a model
 Create and retrieve an instance
 
     >>> child1 = ChildFactory().last_obj_created
-    >>> child2 = ChildFactory()() # calling the instance returns the last_obj_created
+    >>> child2 = ChildFactory()() # same as above
 
 Dynamically passing params to your factories to override factory defaults
+
     >>> BrotherFactory(pk1=child1.pk, pk2=1) # (params also available as class vars)
 
 
