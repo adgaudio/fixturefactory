@@ -60,10 +60,13 @@ class BaseFactory(object):
         dict_ = dict(save_to_db=True, ) # DEFAULT values
 
         # Override defaults with getparams()
-        dict_.update(self.getparams())
+        tmp = self.getparams()
+        dict_.update(tmp)
+        self.__dict__.update(tmp)
 
         #override getparams args with those supplied at runtime
         dict_.update(**kwargs)
+        self.__dict__.update(**kwargs)
 
         try: del dict_['self'] # we don't want to pass this around
         except: pass

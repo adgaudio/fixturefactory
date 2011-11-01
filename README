@@ -25,7 +25,7 @@ Create and retrieve an instance
 
 Dynamically passing params to your factories to override factory defaults
 
-    >>> BrotherFactory(pk1=child1.pk, pk2=1) # (params also available as class vars)
+    >>> BrotherFactory(pk1=child1.pk, pk2=1) # (params become available as class vars)
 
 
 Defining your Factories:
@@ -62,10 +62,21 @@ The following factory generates generic Django users.  A more advanced implement
         def getparams(self):
             pk = self.getUnusedPk() # Utilize the methods in DjangoMixin
             username = 'markov_%s' % pk
-            password = username
+            password = 'sha1$86d38$73c3ea4bbe34f27d06b53115a8af1cd66ff263b3' # using lastly(), you can avoid encryption stuff
             return locals()
 
         #def lastly(self): pass # optional
+
+Lets say you'd rather let django handle password encryption.  The lastly() method will execute code after the object has been created.  An interesting point here is that all variables defined in getparams() become available to lastly() as class variables 
+
+        def lastly(self):
+            a = self.last_obj_created
+            a.set_password(self.username) # sets the password by default the defined username
+
+Also, you can choose not to execute lastly at time of instantiation:
+
+    >>> UserProfileFactory(lastly=False)
+    UserProfileFactory: last_obj_created <Betsy>
 
 This next example shows how to implement Foreign Keys, where the UserProfile has a Foreign Key on the above example's User model.  Note that the 'user' variable in getparams() is an instance of the UserFactory's model 
 
@@ -92,11 +103,6 @@ For this example, lets assume the UserProfile model has a many to many relations
             """Creating a many to many relationship after model instantiation"""
             inst = self.last_obj_created
             inst.groups.add(Group.objects.get(pk=1))
-
-You can choose not to execute lastly at time of instantiation:
-
-    >>> UserProfileFactory(lastly=False)
-    UserProfileFactory: last_obj_created <Betsy>
 
 Here's another many to many example.  If you didn't want to define a method, you can add m2m relationship after instantiation
 
