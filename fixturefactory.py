@@ -4,6 +4,7 @@ class BaseFactory(object):
     """Base Class for creating django objects """
 
     last_obj_created = 'None'
+    call_lastly = True # call lastly() by default
 
     def getparams(cls):
         """Template method: must be overridden by child class.
@@ -48,7 +49,7 @@ class BaseFactory(object):
         try:
             call_lastly = kwargs['lastly']
             del kwargs['lastly']
-        except: call_lastly = True
+        except: call_lastly = self.call_lastly
 
         # turn kwargs into class vars so getparams()
         # NOTE: kwargs override getparams(), so this is only useful
@@ -57,7 +58,7 @@ class BaseFactory(object):
         self.__dict__.update(kwargs)
 
         # Make dict of params necessary to create object
-        dict_ = dict(save_to_db=True, ) # DEFAULT values
+        dict_ = self.getDefaults() # DEFAULT values
 
         # Override defaults with getparams()
         tmp = self.getparams()
@@ -98,8 +99,18 @@ class BaseFactory(object):
             inst.save()
         return inst
 
+    def getDefaults(self):
+        """Return dict of default values with which to call self.create().
+        These values may be overridden by
+            getparams()
+            a child class
+            runtime parameters
+        """
+        return dict(save_to_db=True, )
+
 class DjangoMixin(object):
     """Useful/Necessary methods for Fixture Factories"""
+
     def _getmodel(self, model=None):
         if model == None:
             return self.model
