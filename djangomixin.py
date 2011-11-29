@@ -1,3 +1,5 @@
+import random
+
 class DjangoMixin(object):
     """Useful/Necessary methods for Fixture Factories"""
 
