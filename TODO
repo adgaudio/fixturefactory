@@ -1,0 +1,8 @@
+- Automatically fill in fields where default is not supplied.  (Add this to dict_ before everything else)
+- Have a switch to turn off automatically calculating defaults defined as class var in the child factory
+
+
+
+done
+- Can lastly() get defined as off by default in the model?
+
